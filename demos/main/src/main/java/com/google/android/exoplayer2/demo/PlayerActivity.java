@@ -23,6 +23,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.util.Pair;
 import android.view.KeyEvent;
 import android.view.View;
@@ -88,6 +89,7 @@ import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 /** An activity that plays media using {@link SimpleExoPlayer}. */
@@ -152,6 +154,8 @@ public class PlayerActivity extends Activity
   private AdsLoader adsLoader;
   private Uri loadedAdTagUri;
   private ViewGroup adUiViewGroup;
+
+  private boolean seekCompleted;
 
   // Activity lifecycle
 
@@ -396,7 +400,8 @@ public class PlayerActivity extends Activity
       player =
           ExoPlayerFactory.newSimpleInstance(renderersFactory, trackSelector, drmSessionManager);
       player.addListener(new PlayerEventListener());
-      player.setPlayWhenReady(startAutoPlay);
+
+      player.setPlayWhenReady(true);
       player.addAnalyticsListener(new EventLogger(trackSelector));
       playerView.setPlayer(player);
       playerView.setPlaybackPreparer(this);
@@ -430,7 +435,10 @@ public class PlayerActivity extends Activity
     if (haveStartPosition) {
       player.seekTo(startWindow, startPosition);
     }
+
     player.prepare(mediaSource, !haveStartPosition, false);
+
+
     updateButtonVisibilities();
   }
 
@@ -665,8 +673,15 @@ public class PlayerActivity extends Activity
 
     @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+
       if (playbackState == Player.STATE_ENDED) {
         showControls();
+      } else if (playbackState ==  Player.STATE_READY && !seekCompleted) {
+        // Seek to a random position
+        if (player.isCurrentWindowSeekable()) {
+          player.seekTo(10000 + new Random().nextInt(100000));
+          seekCompleted = true;
+        }
       }
       updateButtonVisibilities();
     }
